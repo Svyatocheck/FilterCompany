@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">FilterCompanyList</string>
+    <string name= "search_hint">Find item here</string>
+</resources>
