@@ -1,7 +1,5 @@
 package com.example.filtercompanylist.Controller;
 
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,11 +10,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.filtercompanylist.Model.Note;
 import com.example.filtercompanylist.Model.TableRow;
-import com.example.filtercompanylist.Model.dbWorker;
 import com.example.filtercompanylist.R;
-import com.example.filtercompanylist.View.dbShow;
 
 import java.util.ArrayList;
 
@@ -56,8 +51,6 @@ public class dbShowAdapter extends RecyclerView.Adapter<dbShowAdapter.PersonHold
 
         // Set the data to the views here
         holder.setCompanyName(note.getTableRow());
-//        holder.setCompanyCategory(note.getCategoryData());
-//        holder.setCompanyPrice(note.getPriceData());
 
     }
 
@@ -72,9 +65,6 @@ public class dbShowAdapter extends RecyclerView.Adapter<dbShowAdapter.PersonHold
     public class PersonHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         private final TextView itemName;
-//        private final TextView itemCategory;
-//        private final TextView itemPrice;
-
         OnNoteListener onNoteListener;
         RemoveListener removeListener;
 
@@ -89,12 +79,9 @@ public class dbShowAdapter extends RecyclerView.Adapter<dbShowAdapter.PersonHold
             this.onNoteListener = onNoteListener;
             this.removeListener = removeListener;
 
-            dbWorker dbHandler = new dbWorker(itemView.getContext());
-
             itemView.setOnClickListener(this);
 
             deleteItem.setOnClickListener(v -> {
-                //Toast.makeText(itemView.getContext(), "Delete button pressed", Toast.LENGTH_SHORT).show();
                 int position = getAdapterPosition();
                 removeListener.onRemoveClick(position);
 

@@ -1,11 +1,8 @@
 package com.example.filtercompanylist.View;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.SearchView;
@@ -16,55 +13,55 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.filtercompanylist.Controller.CategoryAdapter;
+import com.example.filtercompanylist.Controller.DatabaseAdapter;
 import com.example.filtercompanylist.Model.Note;
-import com.example.filtercompanylist.Model.dbWorker;
 import com.example.filtercompanylist.R;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Locale;
-import java.util.Objects;
 
 public class Categories extends AppCompatActivity implements View.OnClickListener, CategoryAdapter.OnNoteListener, CategoryAdapter.RemoveListener {
 
-    private dbWorker dbHandler;
 
-    ArrayList<Note> helperList = new ArrayList<>();
     private ArrayList<Note> notesList = new ArrayList<>();
+    private ArrayList<Note> helperList = new ArrayList<>();
+    private RecyclerView recycler;
 
     String categoryName = "";
     CategoryAdapter listAdapter;
-    Button back;
-    private RecyclerView recycler;
-    TextView priceQueryfier;
+    Button backBTN;
+    TextView priceField;
+    SearchView searchView;
 
-    SearchView search;
+    DatabaseAdapter dbAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.categories_show);
 
-        back = (Button) findViewById(R.id.backBTN);
-        search = (SearchView)findViewById(R.id.searchView);
-        search.setVisibility(View.INVISIBLE);
-        priceQueryfier = findViewById(R.id.priceQuery2);
+        dbAdapter = new DatabaseAdapter(this);
 
-        back.setOnClickListener(v -> {
+        backBTN = (Button) findViewById(R.id.backBTN);
+        searchView = (SearchView)findViewById(R.id.searchView);
+        priceField = findViewById(R.id.priceQuery2);
+        recycler = findViewById(R.id.personsRecycle);
+
+        searchView.setVisibility(View.INVISIBLE);
+
+        backBTN.setOnClickListener(v -> {
             categoryName = "";
             finish();
         });
 
         Intent k = getIntent();
-        categoryName = k.getStringExtra("categoryName").toString();
+        categoryName = k.getStringExtra("categoryName");
 
         if (categoryName.equals(""))
         {
-            search.setVisibility(View.VISIBLE);
-            //dbHandler.onStartFilling(" ");
-            displayDataSet(Categories.this);
-
-            search.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            searchView.setVisibility(View.VISIBLE);
+            displayDataSet();
+            searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                 @Override
                 public boolean onQueryTextSubmit(String query) {
                     return false;
@@ -79,21 +76,19 @@ public class Categories extends AppCompatActivity implements View.OnClickListene
             return;
         }
 
-        displayDataSet(Categories.this);
+        displayDataSet();
 
     }
 
-    private void filter(String text) {
-        ArrayList<Note> filteredList = new ArrayList<>();
-        for (Note item : notesList) {
-            if (item.getCompanyName().toLowerCase().contains(text.toLowerCase()) ||
-                    (item.getProduct().toLowerCase().contains(text.toLowerCase()) ||
-                            item.getFounder().toLowerCase().contains(text.toLowerCase()))) {
+    @SuppressLint("NotifyDataSetChanged")
+    @Override
+    protected void onActivityResult(int requestCode,
+                                    int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
 
-                filteredList.add(item);
-            }
-        }
-        listAdapter.filterList(filteredList);
+        displayDataSet();
+        priceCalculation();
+
     }
 
     @Override
@@ -110,46 +105,78 @@ public class Categories extends AppCompatActivity implements View.OnClickListene
         startActivityForResult(intent, 2);
     }
 
-    @SuppressLint("NotifyDataSetChanged")
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        displayDataSet(Categories.this);
-
-    }
-
-    private void displayDataSet(Context context)
+    public double priceCalculation()
     {
-        notesList.clear();
-        recycler = findViewById(R.id.personsRecycle);
-        listAdapter = new CategoryAdapter(notesList, this, this);
-        recycler.setAdapter(listAdapter);
-
-        dbHandler = new dbWorker(Categories.this);
-        double summator = 0;
+        double summat = 0;
         int counter = 0;
 
-        helperList = dbHandler.onStartFilling(categoryName);
-        for (int i = 0; i < helperList.size(); i++) {
-            notesList.add(0, helperList.get(i));
-            summator += Double.parseDouble(helperList.get(i).getPrice());
-            LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-            recycler.setLayoutManager(layoutManager);
+        for (int i = 0; i < notesList.size(); i ++)
+        {
+            summat += Double.parseDouble(notesList.get(i).getPrice());
             counter += 1;
         }
 
         if (counter > 0)
         {
-            summator = summator/counter;
-            priceQueryfier.setText((new DecimalFormat("##.##").format(summator).toString()));
+            return summat/counter;
+        } else {
+            return 00.00d;
         }
+    }
+    @Override
+    public void onRemoveClick(int position) {
+        dbAdapter.open();
+        dbAdapter.deleteProduct(notesList.get(position).getProduct());
+        dbAdapter.clearTables();
+
+        priceField.setText((new DecimalFormat("##.##").format(priceCalculation())));
+
+        dbAdapter.close();
+    }
+
+    private void displayDataSet() {
+        dbAdapter.open();
+
+        notesList.clear();
+        listAdapter = new CategoryAdapter(notesList, this, this);
+        recycler.setAdapter(listAdapter);
+
+        double summat = 0;
+        int counter = 0;
+
+        helperList = dbAdapter.onStartFilling(categoryName);
+
+        for (int i = 0; i < helperList.size(); i++)
+        {
+            notesList.add(i, helperList.get(i));
+            summat += Double.parseDouble(helperList.get(i).getPrice());
+            LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+            recycler.setLayoutManager(layoutManager);
+
+            counter += 1;
+        }
+
+        if (counter > 0)
+        {
+            summat = summat/counter;
+            priceField.setText((new DecimalFormat("##.##").format(summat)));
+        }
+
+        dbAdapter.close();
 
     }
 
-    @Override
-    public void onRemoveClick(int position) {
-        dbHandler.deleteProduct(notesList.get(position).getProduct());
-        dbHandler.clearTables();
+    private void filter(String text) {
+        ArrayList<Note> filteredList = new ArrayList<>();
+        for (Note item : notesList) {
+            if (item.getCompanyName().toLowerCase().contains(text.toLowerCase()) ||
+                    (item.getProduct().toLowerCase().contains(text.toLowerCase()) ||
+                            item.getFounder().toLowerCase().contains(text.toLowerCase()))) {
+
+                filteredList.add(item);
+            }
+        }
+
+        listAdapter.filterList(filteredList);
     }
 }

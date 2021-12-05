@@ -3,23 +3,17 @@ package com.example.filtercompanylist.Controller;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Filter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.filtercompanylist.Model.dbWorker;
 import com.example.filtercompanylist.R;
 
-import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.List;
 
 public class MainRecyclerViewAdapter extends RecyclerView.Adapter<MainRecyclerViewAdapter.ViewHolder> {
@@ -28,7 +22,6 @@ public class MainRecyclerViewAdapter extends RecyclerView.Adapter<MainRecyclerVi
     private final LayoutInflater mInflater;
     private ItemClickListener mClickListener;
     private final RemoveListener removeListener;
-    dbWorker dbHandler;
 
     // data is passed into the constructor
     public MainRecyclerViewAdapter(Context context, List<String> animals,  RemoveListener removeListener) {
@@ -64,54 +57,10 @@ public class MainRecyclerViewAdapter extends RecyclerView.Adapter<MainRecyclerVi
         return categories.size();
     }
 
-    public Filter getFilter() {
-        return new Filter() {
-            @SuppressWarnings("unchecked")
-            @Override
-            protected void publishResults(CharSequence constraint, FilterResults results) {
-//                List<String> list = (List<String>) results.values;
-//                notifyDataSetChanged();
-                Log.d("Results", results.toString());
-            }
-
-            @Override
-            protected FilterResults performFiltering(CharSequence constraint) {
-                List<String> filteredResults = null;
-                if (constraint.length() == 0) {
-                    filteredResults = categories;
-                } else {
-                    filteredResults = getFilteredResults(constraint.toString().toLowerCase());
-                }
-
-                FilterResults results = new FilterResults();
-                results.values = filteredResults;
-
-                return results;
-            }
-        };
-    }
-
-    protected List<String> getFilteredResults(String constraint) {
-        List<String> results = new ArrayList<>();
-
-        for (String item : categories) {
-            if (item.toLowerCase().contains(constraint)) {
-                results.add(item);
-                Log.d("Results", item);
-            }
-        }
-        return results;
-    }
-
-
     // stores and recycles views as they are scrolled off screen
     public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         View myView;
         TextView myTextView;
-        TextView priceQuery;
-        dbWorker dbHandler;
-
-        RemoveListener removeListener;
 
         ViewHolder(View itemView, RemoveListener removeListener) {
             super(itemView);
@@ -122,37 +71,25 @@ public class MainRecyclerViewAdapter extends RecyclerView.Adapter<MainRecyclerVi
             ImageView deleteItem = itemView.findViewById(R.id.removeItem);
             itemView.setOnClickListener(this);
 
-            deleteItem.setOnClickListener(new View.OnClickListener() {
-                public void onClick(View v) {
+            deleteItem.setOnClickListener(v -> {
 
-                    AlertDialog.Builder alert = new AlertDialog.Builder(v.getContext());
+                AlertDialog.Builder alert = new AlertDialog.Builder(v.getContext());
 
-                    alert.setTitle("Delete");
-                    alert.setMessage("All products in this category will be deleted.\nContinue?");
-                    alert.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            //Toast.makeText(itemView.getContext(), "Delete button pressed", Toast.LENGTH_SHORT).show();
-                            int position = getAdapterPosition();
-                            removeListener.onRemoveClick(position);
+                alert.setTitle("Delete");
+                alert.setMessage("All products in this category will be deleted.\nContinue?");
+                alert.setPositiveButton("Yes", (dialog, which) -> {
+                    int position = getAdapterPosition();
+                    removeListener.onRemoveClick(position);
 
-                            categories.remove(position);
-                            notifyItemRemoved(position);
+                    categories.remove(position);
+                    notifyItemRemoved(position);
 
-                            dialog.dismiss();
-                        }
-                    });
+                    dialog.dismiss();
+                });
 
-                    alert.setNegativeButton("No", new DialogInterface.OnClickListener() {
-
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                        }
-                    });
-
-                    alert.show();
-                }});
+                alert.setNegativeButton("No", (dialog, which) -> dialog.dismiss());
+                alert.show();
+            });
         }
 
         @Override

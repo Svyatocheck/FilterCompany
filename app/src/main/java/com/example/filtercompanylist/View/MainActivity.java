@@ -1,13 +1,11 @@
 package com.example.filtercompanylist.View;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -15,9 +13,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.filtercompanylist.Controller.DatabaseAdapter;
 import com.example.filtercompanylist.Controller.MainRecyclerViewAdapter;
-import com.example.filtercompanylist.Model.TableRow;
-import com.example.filtercompanylist.Model.dbWorker;
 import com.example.filtercompanylist.R;
 
 import java.text.DecimalFormat;
@@ -30,19 +27,19 @@ public class MainActivity extends AppCompatActivity implements MainRecyclerViewA
     ImageButton searchView;
     Button addBtn;
     Button showDB;
-    dbWorker dbHandler;
+    DatabaseAdapter dbAdapter;
     Integer REQUEST_CODE = 1;
     ArrayList<String> categories;
-    TextView priceQueryfier;
+    TextView totalPriceField;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        dbHandler = new dbWorker(MainActivity.this);
+        dbAdapter = new DatabaseAdapter(this);
 
         searchView = findViewById(R.id.searchView);
-        priceQueryfier = findViewById(R.id.priceQueryfier);
+        totalPriceField = findViewById(R.id.priceQueryfier);
         addBtn = findViewById(R.id.addBtn);
         showDB = findViewById(R.id.showDb);
 
@@ -51,11 +48,7 @@ public class MainActivity extends AppCompatActivity implements MainRecyclerViewA
             //startActivityForResult(new Intent(this, EditPage.class), REQUEST_CODE);
         });
 
-        addBtn.setOnClickListener(v -> {
-            startActivityForResult(new Intent(this, EditPage.class), REQUEST_CODE);
-        });
-
-        onDisplayShow(MainActivity.this);
+        addBtn.setOnClickListener(v -> startActivityForResult(new Intent(this, EditPage.class), REQUEST_CODE));
 
         searchView.setOnClickListener(v -> {
             Intent intent = new Intent(this, Categories.class);
@@ -63,13 +56,16 @@ public class MainActivity extends AppCompatActivity implements MainRecyclerViewA
             startActivityForResult(intent, 2);
         });
 
+        onDisplayShow();
+
     }
 
     @SuppressLint("SetTextI18n")
-    public void onDisplayShow(Context context)
+    public void onDisplayShow()
     {
-        categories = dbHandler.getCategories();
-        priceQueryfier.setText((new DecimalFormat("##.##").format(dbHandler.getPrice())).toString());
+        dbAdapter.open();
+        categories = dbAdapter.getCategories();
+        totalPriceField.setText((new DecimalFormat("##.##").format(dbAdapter.getPrice())));
 
         // set up the RecyclerView
         RecyclerView recyclerView = findViewById(R.id.rvAnimals);
@@ -80,15 +76,18 @@ public class MainActivity extends AppCompatActivity implements MainRecyclerViewA
         adapter = new MainRecyclerViewAdapter(this, categories, this);
         adapter.setClickListener(this);
         recyclerView.setAdapter(adapter);
+
+        dbAdapter.close();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        onDisplayShow(MainActivity.this);
+        onDisplayShow();
 
         try {
+
             if (requestCode == REQUEST_CODE && resultCode == RESULT_OK) {
                 String result = data.getExtras().get("categoryData").toString();
                 boolean check = false;
@@ -99,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements MainRecyclerViewA
                     }
                 }
 
-                if (check == false)
+                if (!check)
                 {
                     categories.add(0, result);
                     adapter.notifyItemInserted(0);
@@ -107,14 +106,12 @@ public class MainActivity extends AppCompatActivity implements MainRecyclerViewA
 
                 Toast.makeText(this, "A new item was created!", Toast.LENGTH_SHORT).show();
             }
-        }
-        catch (Exception ex){}
+        } catch (Exception ignored){}
 
     }
 
     @Override
     public void onItemClick(View view, int position) {
-        //Toast.makeText(this, "You clicked " + adapter.getItem(position) + " on item position " + position, Toast.LENGTH_SHORT).show();
         Intent intent = new Intent(this, Categories.class);
         intent.putExtra("categoryName", adapter.getItem(position));
         startActivityForResult(intent, 2);
@@ -122,9 +119,12 @@ public class MainActivity extends AppCompatActivity implements MainRecyclerViewA
 
     @Override
     public void onRemoveClick(int position) {
+        dbAdapter.open();
+        dbAdapter.deleteCategory(categories.get(position));
+        dbAdapter.clearTables();
+        dbAdapter.close();
+
         Toast.makeText(this, "The category was removed!", Toast.LENGTH_SHORT).show();
-        dbHandler.deleteCategory(categories.get(position));
-        dbHandler.clearTables();
 
     }
 }

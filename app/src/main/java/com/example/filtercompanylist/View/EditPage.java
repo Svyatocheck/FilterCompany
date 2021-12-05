@@ -1,20 +1,17 @@
 package com.example.filtercompanylist.View;
 
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.filtercompanylist.Controller.DatabaseAdapter;
 import com.example.filtercompanylist.Model.Note;
-import com.example.filtercompanylist.Model.dbWorker;
 import com.example.filtercompanylist.R;
 
 import java.util.ArrayList;
@@ -23,7 +20,6 @@ import java.util.ArrayList;
 public class EditPage extends AppCompatActivity implements View.OnClickListener {
 
     String position = "";
-    private dbWorker dbHandler;
 
     AutoCompleteTextView company;
     AutoCompleteTextView founder;
@@ -38,13 +34,13 @@ public class EditPage extends AppCompatActivity implements View.OnClickListener 
     String Category;
     String Price;
 
-
+    DatabaseAdapter dbAdapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.add_new_item);
 
-        dbHandler = new dbWorker(EditPage.this);
+        dbAdapter = new DatabaseAdapter(this);
 
         Button saveBTN = findViewById(R.id.saveBTN);
         Button closeBTN = findViewById(R.id.closeBTN);
@@ -65,30 +61,32 @@ public class EditPage extends AppCompatActivity implements View.OnClickListener 
         saveBTN.setOnClickListener(this);
         closeBTN.setOnClickListener(v -> finish());
 
-        ArrayList<String> adapterCompany = dbHandler.getCompanyNames();
+        dbAdapter.open();
+        ArrayList<String> adapterCompany = dbAdapter.getCompanies();
         ArrayAdapter<String> adapter_1 = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, adapterCompany);
         AutoCompleteTextView companyText = company;
         companyText.setAdapter(adapter_1);
 
-        ArrayList<String> adapterProduct = dbHandler.getProductNamesSimple();
+        ArrayList<String> adapterProduct = dbAdapter.getProductsSimple();
         ArrayAdapter<String> adapter_2 = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, adapterProduct);
         AutoCompleteTextView productText = product;
         productText.setAdapter(adapter_2);
 
-        ArrayList<String> adapterFounder = dbHandler.getFounderNames();
+        ArrayList<String> adapterFounder = dbAdapter.getFounders();
         ArrayAdapter<String> adapter_3 = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, adapterFounder);
         AutoCompleteTextView founderText = founder;
         founderText.setAdapter(adapter_3);
 
-        ArrayList<String> adapterCategory = dbHandler.getCategories();
+        ArrayList<String> adapterCategory = dbAdapter.getCategories();
         ArrayAdapter<String> adapter_4 = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, adapterCategory);
         AutoCompleteTextView categoryText = category;
         categoryText.setAdapter(adapter_4);
 
+        dbAdapter.close();
 
         try {
             getInfo();
@@ -96,7 +94,6 @@ public class EditPage extends AppCompatActivity implements View.OnClickListener 
         {}
 
     }
-
 
     protected void getInfo()
     {
@@ -117,15 +114,6 @@ public class EditPage extends AppCompatActivity implements View.OnClickListener 
         position = i.getStringExtra("position");
     }
 
-    public void hideKeyboard(View v)
-    {
-        try {
-            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
-        } catch (Exception ignored) {
-        }
-    }
-
     @Override
     public void onClick(View v) {
         Intent intent = new Intent();
@@ -138,16 +126,18 @@ public class EditPage extends AppCompatActivity implements View.OnClickListener 
 
         if (!name.equals("") && !person.equals("") &&
                 !production.equals("") && !categoryText.equals("")) {
+
+            dbAdapter.open();
             if (!position.isEmpty()) {
                 // Значит элемент в режиме редактирования
                 intent.putExtra("position", position);
                 position = "";
 
                 // Изменяем данные
-                dbHandler.updateCompany(Company, name);
-                dbHandler.updateFounder(Founder, person);
-                dbHandler.updateCategory(Category, categoryText, Product);
-                dbHandler.updateProduct(Product, production, priceValue);
+                dbAdapter.updateCompany(Company, name);
+                dbAdapter.updateFounder(Founder, person);
+                dbAdapter.updateCategory(Category, categoryText, Product);
+                dbAdapter.updateProduct(Product, production, priceValue);
 
                 setResult(RESULT_OK, intent);
                 finish();
@@ -155,9 +145,9 @@ public class EditPage extends AppCompatActivity implements View.OnClickListener 
             }
 
             // Иначе, создаем новые связи
-            dbHandler.addNewNote(name, person, production, categoryText, priceValue);
-            dbHandler.compareProductCompany(name, production);
-            dbHandler.compareCompanyFounder(name, person);
+            dbAdapter.addNewNote(name, person, production, categoryText, priceValue);
+            dbAdapter.compareProductCompany(name, production);
+            dbAdapter.compareCompanyFounder(name, person);
 
             intent.putExtra("categoryData", categoryText);
 
@@ -168,6 +158,7 @@ public class EditPage extends AppCompatActivity implements View.OnClickListener 
             setResult(RESULT_CANCELED, null);
         }
 
+        dbAdapter.close();
         finish();
     }
 

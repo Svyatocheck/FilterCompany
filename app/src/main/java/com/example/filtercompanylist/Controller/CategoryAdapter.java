@@ -32,7 +32,6 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Person
     }
 
 
-
     @Override
     public int getItemCount() {
         return noteItems == null? 0: noteItems.size();
