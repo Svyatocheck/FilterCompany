@@ -82,12 +82,13 @@ public class dbShow extends AppCompatActivity implements View.OnClickListener, d
 
                     if (Tables.getSelectedItem().equals(dbWorker.TABLE_CATEGORY)) {
                         helperList = dbAdapter.getCategories();
-
                     }
+
                     else if (Tables.getSelectedItem().equals(dbWorker.TABLE_FOUNDER)) {
                         helperList = dbAdapter.getFounders();
 
                     }
+
                     else if ((Tables.getSelectedItem().equals(dbWorker.TABLE_COMPANY))) {
                         helperList = dbAdapter.getCompanies();
                     }
@@ -138,11 +139,12 @@ public class dbShow extends AppCompatActivity implements View.OnClickListener, d
                 break;
             case dbWorker.TABLE_FOUNDER:
                 dbAdapter.deleteFounder(notesList.get(position).getTableRow());
-
                 break;
+
             case dbWorker.TABLE_CATEGORY:
                 dbAdapter.deleteCategory(notesList.get(position).getTableRow());
                 break;
+
         }
 
         dbAdapter.clearTables();

@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.filtercompanylist.Controller.DatabaseAdapter;
 import com.example.filtercompanylist.Controller.MainRecyclerViewAdapter;
 import com.example.filtercompanylist.R;
+import com.example.filtercompanylist.ui.login.LoginActivity;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ public class MainActivity extends AppCompatActivity implements MainRecyclerViewA
     ImageButton searchView;
     Button addBtn;
     Button showDB;
+    Button logOut;
     DatabaseAdapter dbAdapter;
     Integer REQUEST_CODE = 1;
     ArrayList<String> categories;
@@ -38,14 +40,38 @@ public class MainActivity extends AppCompatActivity implements MainRecyclerViewA
 
         dbAdapter = new DatabaseAdapter(this);
 
+        logOut = findViewById(R.id.logOut);
         searchView = findViewById(R.id.searchView);
         totalPriceField = findViewById(R.id.priceQueryfier);
         addBtn = findViewById(R.id.addBtn);
         showDB = findViewById(R.id.showDb);
 
+        try {
+            Bundle extras = getIntent().getExtras();
+            if (extras != null) {
+                String value = extras.getString("User");
+                //The key argument here must match that used in the other activity
+                //Toast.makeText(this, "Hello " + value + "!", Toast.LENGTH_SHORT).show();
+                if (value != null)
+                    if (!value.toString().equals("Admin"))
+                    {
+                        showDB.setVisibility(View.INVISIBLE);
+                    }
+            }
+        } catch (Exception ex) {
+            //Toast.makeText(this, (CharSequence) ex, Toast.LENGTH_SHORT).show();
+        }
+
         showDB.setOnClickListener(v -> {
             startActivityForResult(new Intent(this, dbShow.class), REQUEST_CODE);
             //startActivityForResult(new Intent(this, EditPage.class), REQUEST_CODE);
+        });
+
+        logOut.setOnClickListener(v -> {
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
+            Toast.makeText(getApplicationContext(), "Have a good day!", Toast.LENGTH_LONG).show();
+            finish();
         });
 
         addBtn.setOnClickListener(v -> startActivityForResult(new Intent(this, EditPage.class), REQUEST_CODE));

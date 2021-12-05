@@ -11,7 +11,10 @@ import android.util.Log;
 import com.example.filtercompanylist.Model.Note;
 import com.example.filtercompanylist.Model.TableRow;
 import com.example.filtercompanylist.Model.dbWorker;
+import com.example.filtercompanylist.data.model.LoggedInUser;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
 public class DatabaseAdapter {
@@ -41,6 +44,98 @@ public class DatabaseAdapter {
         return  database.rawQuery("Select name From sqlite_master where type ='table'", null);
     }
 
+    @SuppressLint({"Range", "Recycle"})
+    public ArrayList<String> getUsers() {
+        ArrayList<String> getUsers = new ArrayList<>();
+        String selectQuery = "SELECT * FROM " + dbWorker.TABLE_USER;
+
+        Cursor c = database.rawQuery(selectQuery, null);
+        if (c.moveToFirst()) {
+            do {
+                getUsers.add(c.getString(c.getColumnIndex(dbWorker.Login)));
+            } while (c.moveToNext());
+        }
+
+        return getUsers;
+    }
+
+    public String findUser(String userName) {
+        String idUser = "";
+        Cursor cursorProduct = database.query(dbWorker.TABLE_USER, null, dbWorker.Login + "=?",
+                new String[]{userName}, null, null, null);
+
+        if (cursorProduct.moveToFirst()) {
+            do {
+                idUser = cursorProduct.getString((cursorProduct.getColumnIndex(dbWorker.id)));
+            } while (cursorProduct.moveToNext());
+        }
+        cursorProduct.close();
+        Log.d("Ladies and gentlemen, we got him", idUser);
+        return idUser;
+    }
+
+    private String md5(String in) {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("MD5");
+            digest.reset();
+            digest.update(in.getBytes());
+            byte[] a = digest.digest();
+            int len = a.length;
+
+            StringBuilder sb = new StringBuilder(len << 1);
+            for (byte b : a) {
+                sb.append(Character.forDigit((b & 0xf0) >> 4, 16));
+                sb.append(Character.forDigit(b & 0x0f, 16));
+            }
+            return sb.toString();
+
+        } catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
+        return null;
+    }
+
+    @SuppressLint("Recycle")
+    public void insertLoginUser(String username, String mail, String password) {
+        ContentValues values = new ContentValues();
+        try {
+            values.put(dbWorker.Login, username);
+            values.put(dbWorker.Mail, mail);
+            values.put(dbWorker.Password, md5(password));
+
+            database.insertOrThrow(dbWorker.TABLE_USER, null, values);
+
+            Log.d("Insert to db:", "User input completed!");
+
+        } catch (Exception exception){
+            Log.e("Insert to db:", "Error while input User!");
+        }
+    }
+
+    @SuppressLint("Range")
+    public LoggedInUser checkPassword(String userId, String password)
+    {
+        Cursor cursor = database.query(dbWorker.TABLE_USER, null, dbWorker.id + "=?",
+                new String[]{userId}, null, null, null);
+
+        LoggedInUser user = null;
+        String checkPasswords = md5(password);
+
+        if (cursor.moveToFirst()) {
+            do {
+                if (cursor.getString(cursor.getColumnIndex(dbWorker.Password)).equals(checkPasswords)) {
+                    Log.d("Result", "Passwords are same!");
+                    user = new LoggedInUser(
+                            (cursor.getString(cursor.getColumnIndex(dbWorker.id))),
+                            (cursor.getString(cursor.getColumnIndex(dbWorker.Login))),
+                            (cursor.getString(cursor.getColumnIndex(dbWorker.Mail))));
+                    break;
+                }
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+
+        return user;
+    }
     // Get items with full information
     @SuppressLint("Recycle")
     public ArrayList<Note> onStartFilling(String categoryData)
@@ -50,12 +145,12 @@ public class DatabaseAdapter {
         try {
 
             String query = "SELECT *  FROM " + dbWorker.TABLE_COMPANY
-                    + " JOIN " + dbWorker.COMPANY_FOUNDER + " ON " + dbWorker.TABLE_COMPANY + ".id = " + dbWorker.COMPANY_FOUNDER + "." + dbWorker.company_id
-                    + " JOIN " + dbWorker.TABLE_FOUNDER + " ON " + dbWorker.COMPANY_FOUNDER + "." + dbWorker.founder_id + " = " + dbWorker.TABLE_FOUNDER + ".id"
-                    + " JOIN " + dbWorker.PRODUCT_COMPANY + " ON " + dbWorker.TABLE_COMPANY + ".id" + " = " + dbWorker.PRODUCT_COMPANY + "." + dbWorker.company_id
-                    + " JOIN " + dbWorker.TABLE_PRODUCT + " ON " + dbWorker.PRODUCT_COMPANY + "." + dbWorker.product_id + " = " + dbWorker.TABLE_PRODUCT + ".id"
-                    + " JOIN " + dbWorker.TABLE_CATEGORY + " on " + dbWorker.TABLE_PRODUCT + "." + dbWorker.categoryID + " =  " + dbWorker.TABLE_CATEGORY + "." + dbWorker.id
-                    + " WHERE " + dbWorker.TABLE_CATEGORY + "." + dbWorker.categoryName + " like '%" + categoryData + "%'" +
+                    + " JOIN " + dbWorker.COMPANY_FOUNDER + " ON " + dbWorker.TABLE_COMPANY + ".id = " + dbWorker.COMPANY_FOUNDER + "." + dbWorker.ID_COMPANY
+                    + " JOIN " + dbWorker.TABLE_FOUNDER + " ON " + dbWorker.COMPANY_FOUNDER + "." + dbWorker.ID_FOUNDER + " = " + dbWorker.TABLE_FOUNDER + ".id"
+                    + " JOIN " + dbWorker.PRODUCT_COMPANY + " ON " + dbWorker.TABLE_COMPANY + ".id" + " = " + dbWorker.PRODUCT_COMPANY + "." + dbWorker.ID_COMPANY
+                    + " JOIN " + dbWorker.TABLE_PRODUCT + " ON " + dbWorker.PRODUCT_COMPANY + "." + dbWorker.ID_PRODUCT + " = " + dbWorker.TABLE_PRODUCT + ".id"
+                    + " JOIN " + dbWorker.TABLE_CATEGORY + " on " + dbWorker.TABLE_PRODUCT + "." + dbWorker.ID_CATEGORY + " =  " + dbWorker.TABLE_CATEGORY + "." + dbWorker.id
+                    + " WHERE " + dbWorker.TABLE_CATEGORY + "." + dbWorker.CATEGORY_NAME + " like '%" + categoryData + "%'" +
                     " ORDER BY CName DESC";
 
             Cursor cursor = database.rawQuery(query, null);
@@ -67,7 +162,7 @@ public class DatabaseAdapter {
                             cursor.getString(cursor.getColumnIndex(dbWorker.CName)),
                             cursor.getString(cursor.getColumnIndex(dbWorker.FName)),
                             cursor.getString(cursor.getColumnIndex(dbWorker.PName)),
-                            cursor.getString(cursor.getColumnIndex(dbWorker.categoryName)),
+                            cursor.getString(cursor.getColumnIndex(dbWorker.CATEGORY_NAME)),
                             cursor.getString(cursor.getColumnIndex(dbWorker.Price)));
                     notesList.add(counter, note);
                     counter += 1;
@@ -87,7 +182,9 @@ public class DatabaseAdapter {
         Cursor cursor = getAllTables();
         if (cursor.moveToFirst()) {
             while ( !cursor.isAfterLast() ) {
-                if (!(cursor.getString(0).contains("_")))
+                if (!(cursor.getString(0).contains("_")) &&
+                        !(cursor.getString(0).contains("Users")))
+
                     tables.add(cursor.getString(0));
                 cursor.moveToNext();
             }
@@ -132,7 +229,7 @@ public class DatabaseAdapter {
     public ArrayList<TableRow> getProducts () {
         ArrayList<TableRow> getProducts = new ArrayList<>();
         String selectQuery = "SELECT * FROM " + dbWorker.TABLE_PRODUCT + " JOIN " + dbWorker.TABLE_CATEGORY
-                        + " on " + dbWorker.TABLE_PRODUCT + "." + dbWorker.categoryID + " = " + dbWorker.TABLE_CATEGORY + "." + dbWorker.id;
+                        + " on " + dbWorker.TABLE_PRODUCT + "." + dbWorker.ID_CATEGORY + " = " + dbWorker.TABLE_CATEGORY + "." + dbWorker.id;
 
         Cursor c = database.rawQuery(selectQuery, null);
         if (c.moveToFirst()) {
@@ -140,7 +237,7 @@ public class DatabaseAdapter {
                 TableRow note = new TableRow(
                         (c.getString(c.getColumnIndex(dbWorker.PName))),
                          c.getString(c.getColumnIndex(dbWorker.Price)),
-                         c.getString(c.getColumnIndex(dbWorker.categoryName)));
+                         c.getString(c.getColumnIndex(dbWorker.CATEGORY_NAME)));
                 getProducts.add(note);
             } while (c.moveToNext());
         }
@@ -155,7 +252,7 @@ public class DatabaseAdapter {
         Cursor cursor = database.rawQuery(selectQuery, null);
         if (cursor.moveToFirst()) {
             do {
-                getCategory.add(cursor.getString(cursor.getColumnIndex(dbWorker.categoryName)));
+                getCategory.add(cursor.getString(cursor.getColumnIndex(dbWorker.CATEGORY_NAME)));
             } while (cursor.moveToNext());
         }
 
@@ -224,13 +321,13 @@ public class DatabaseAdapter {
         String answer = findCategory(categoryNew);
         if (answer == null) {
             ContentValues cv = new ContentValues();
-            cv.put(dbWorker.categoryName, categoryNew);
+            cv.put(dbWorker.CATEGORY_NAME, categoryNew);
             database.update(dbWorker.TABLE_CATEGORY, cv,
                     "CategoryName = ?", new String[]{categoryValue});
         } else {
             String answer_2 = findCategory(categoryValue);
             ContentValues cv = new ContentValues();
-            cv.put(dbWorker.categoryID, answer);
+            cv.put(dbWorker.ID_CATEGORY, answer);
             database.update(dbWorker.TABLE_PRODUCT, cv,
                     "PName = ?", new String[]{Product});
         }
@@ -248,8 +345,8 @@ public class DatabaseAdapter {
     public void addNewCategory(String data) {
         ContentValues values = new ContentValues();
         try {
-            values.put(dbWorker.categoryName, data);
-            database.insert(dbWorker.TABLE_CATEGORY, null, values);
+            values.put(dbWorker.CATEGORY_NAME, data);
+            database.insertOrThrow(dbWorker.TABLE_CATEGORY, null, values);
             Log.d("Insert to db:", "Category input completed!");
 
         } catch (Exception exception) {
@@ -263,7 +360,7 @@ public class DatabaseAdapter {
 
         try {
             values.put(dbWorker.FName, data);
-            database.insert(dbWorker.TABLE_FOUNDER, null, values);
+            database.insertOrThrow(dbWorker.TABLE_FOUNDER, null, values);
             Log.d("Insert to db:", "Founder input completed!");
 
         } catch (Exception exception){
@@ -276,7 +373,7 @@ public class DatabaseAdapter {
 
         try {
             values.put(dbWorker.CName, data);
-            database.insert(dbWorker.TABLE_COMPANY, null, values);
+            database.insertOrThrow(dbWorker.TABLE_COMPANY, null, values);
             Log.d("Insert to db:", "Company input completed!");
 
         } catch (Exception ex) {
@@ -298,8 +395,8 @@ public class DatabaseAdapter {
 
             values.put(dbWorker.PName, nameData);
             values.put(dbWorker.Price, priceData);
-            values.put(dbWorker.categoryID, Integer.valueOf(check));
-            database.insert(dbWorker.TABLE_PRODUCT, null, values);
+            values.put(dbWorker.ID_CATEGORY, Integer.valueOf(check));
+            database.insertOrThrow(dbWorker.TABLE_PRODUCT, null, values);
 
             Log.d("Insert to db:", "Product input completed!");
 
@@ -315,14 +412,14 @@ public class DatabaseAdapter {
         String idFounder = findFounder(Founder);
 
         String select = "SELECT * FROM " + dbWorker.COMPANY_FOUNDER + " WHERE "
-                + dbWorker.company_id + " = ? AND " + dbWorker.founder_id + " = ?";
+                + dbWorker.ID_COMPANY + " = ? AND " + dbWorker.ID_FOUNDER + " = ?";
         Cursor cursor = database.rawQuery(select, new String[]{idCompany, idFounder});
 
         if (cursor.getCount() == 0) {
             ContentValues values = new ContentValues();
-            values.put(dbWorker.founder_id, idFounder);
-            values.put(dbWorker.company_id, idCompany);
-            long res = database.insert(dbWorker.COMPANY_FOUNDER, null, values);
+            values.put(dbWorker.ID_FOUNDER, idFounder);
+            values.put(dbWorker.ID_COMPANY, idCompany);
+            long res = database.insertOrThrow(dbWorker.COMPANY_FOUNDER, null, values);
 
             if (res == -1)
                 Log.e("Insert to db:", "Error while input Company_Founder!");
@@ -339,15 +436,15 @@ public class DatabaseAdapter {
         String idCompany = findCompany(companyName);
         String idProduct = findProduct(Product);
 
-        String select = "SELECT * FROM " + dbWorker.PRODUCT_COMPANY + " WHERE " + dbWorker.company_id + " = ? AND " + dbWorker.product_id + " = ?";
+        String select = "SELECT * FROM " + dbWorker.PRODUCT_COMPANY + " WHERE " + dbWorker.ID_COMPANY + " = ? AND " + dbWorker.ID_PRODUCT + " = ?";
         Cursor cursor = database.rawQuery(select, new String[]{idCompany, idProduct});
 
         if (cursor.getCount() == 0) {
 
             ContentValues values = new ContentValues();
-            values.put(dbWorker.product_id, idProduct);
-            values.put(dbWorker.company_id, idCompany);
-            long res = database.insert(dbWorker.PRODUCT_COMPANY, null, values);
+            values.put(dbWorker.ID_PRODUCT, idProduct);
+            values.put(dbWorker.ID_COMPANY, idCompany);
+            long res = database.insertOrThrow(dbWorker.PRODUCT_COMPANY, null, values);
 
             if (res == -1)
                 Log.e("Insert to db:", "Error while input Product_Company!");
@@ -374,8 +471,8 @@ public class DatabaseAdapter {
         cursorCompany.close();
 
         try {
-            database.delete(dbWorker.COMPANY_FOUNDER, dbWorker.company_id + "=?", new String[]{idCompany});
-            database.delete(dbWorker.PRODUCT_COMPANY, dbWorker.company_id + "=?", new String[]{idCompany});
+            database.delete(dbWorker.COMPANY_FOUNDER, dbWorker.ID_COMPANY + "=?", new String[]{idCompany});
+            database.delete(dbWorker.PRODUCT_COMPANY, dbWorker.ID_COMPANY + "=?", new String[]{idCompany});
         }
 
         catch (Exception ex)
@@ -399,7 +496,7 @@ public class DatabaseAdapter {
 
 
         try {
-            database.delete(dbWorker.COMPANY_FOUNDER, dbWorker.founder_id + "=?", new String[]{idFounder});
+            database.delete(dbWorker.COMPANY_FOUNDER, dbWorker.ID_FOUNDER + "=?", new String[]{idFounder});
         } catch (Exception ex)
         {
             Log.e("Removing items from compare:", "DB not contains this values or we have errors!");
@@ -419,7 +516,7 @@ public class DatabaseAdapter {
         cursorProduct.close();
 
         try {
-            database.delete(dbWorker.PRODUCT_COMPANY, dbWorker.product_id + "=?", new String[]{idProduct});
+            database.delete(dbWorker.PRODUCT_COMPANY, dbWorker.ID_PRODUCT + "=?", new String[]{idProduct});
         } catch (Exception ex)
         {
             Log.e("Removing items from compare:", "DB not contains this values or we have errors!");

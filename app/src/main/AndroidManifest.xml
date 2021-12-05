@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.filtercompanylist">
+    <uses-permission android:name="android.permission.INTERNET" />
+
 
     <application
         android:allowBackup="true"
@@ -9,19 +11,29 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.FilterCompanyList">
+
         <activity
-            android:name=".View.MainActivity"
-            android:exported="true">
+            android:name=".ui.login.LoginActivity"
+            android:exported="true"
+            android:label="@string/title_activity_login">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.SEARCH" />
                 <category android:name="android.intent.category.LAUNCHER" />
+
             </intent-filter>
+
         </activity>
 
+
+        <activity
+            android:name=".View.MainActivity"
+            android:exported="false" />
         <activity android:name=".View.EditPage" />
-        <activity android:name=".View.Categories"/>
-        <activity android:name=".View.dbShow"/>
+        <activity android:name=".View.Categories" />
+        <activity android:name=".View.dbShow" />
+        <activity android:name=".View.RegisterActivity"/>
 
     </application>
 
